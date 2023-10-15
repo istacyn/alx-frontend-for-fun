@@ -2,57 +2,50 @@
 '''Script to convert Markdown file to HTML file.
 '''
 
-import sys
-import os
-import markdown
+import argparse
+import pathlib
+import re
 
 
-def convert_markdown_to_html(markdown_file, output_file):
+def convert_md_to_html(input_file, output_file):
     '''
-    Converts the content of a Markdown file to HTML and
-    writes the result to an output file.
-
-    Parameters:
-    - markdown_file (str): The path to the Markdown input file.
-    - output_file (str): The path to the HTML output file.
-
-    Returns:
-    - int: Exit code, where 0 indicates success and 1 indicates an error.
+    Converts markdown file to HTML file
     '''
-    try:
-        if not os.path.isfile(markdown_file):
-            raise FileNotFoundError(f'Missing {markdown_file}')
+    # Read the contents of the input file
+    with open(input_file, encoding='utf-8') as f:
+        md_content = f.readlines()
 
-        # Read the content from the Markdown file
-        with open(markdown_file, encoding='utf-8') as file:
-            md_content = file.read()
+    html_content = []
+    for line in md_content:
+        # Check if the line is a heading
+        match = re.match(r'(#){1,6} (.*)', line)
+        if match:
+            # Get the level of the heading
+            h_level = len(match.group(1))
+            # Get the content of the heading
+            h_content = match.group(2)
+            # Append the HTML equivalent of the heading
+            html_content.append(f'<h{h_level}>{h_content}</h{h_level}>\n')
+        else:
+            html_content.append(line)
 
-        # Convert Markdown to HTML
-        html_content = markdown.markdown(md_content)
-
-        # Write the HTML content to the output file
-        with open(output_file, 'w', encoding='utf-8') as html_file:
-            html_file.write(html_content)
-
-        return 0
-
-    except FileNotFoundError as e:
-        print(e, file=sys.stderr)
-        return 1
-    except Exception as e:
-        print(f'An error occurred: {e}', file=sys.stderr)
-        return 1
+    # Write the HTML content to the output file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.writelines(html_content)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: ./markdown2html.py <input_markdown_file> \
-               <output_html_file>", file=sys.stderr)
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Convert markdown to HTML')
+    parser.add_argument('input_file', help='path to input markdown file')
+    parser.add_argument('output_file', help='path to output HTML file')
+    args = parser.parse_args()
+
+    # Check if the input file exists
+    input_path = pathlib.Path(args.input_file)
+    if not input_path.is_file():
+        print(f'Missing {input_path}', file=sys.stderr)
         sys.exit(1)
 
-    input_markdown_file = sys.argv[1]
-    output_html_file = sys.argv[2]
-
-    exit_code = convert_markdown_to_html(input_markdown_file, output_html_file)
-
-    sys.exit(exit_code)
+    # Convert the markdown file to HTML
+    convert_md_to_html(args.input_file, args.output_file)
